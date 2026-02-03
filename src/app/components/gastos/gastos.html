@@ -3,8 +3,11 @@
   <header class="header">
     <div class="header-content">
       <div class="header-left">
-        <h1>💰 Mis Gastos</h1>
-        <p *ngIf="usuario">Hola, {{ usuario.nombre }}</p>
+        <img src="/foto1.jpg" alt="Logo" class="header-logo">
+        <div>
+          <h1>💰 Mis Gastos</h1>
+          <p *ngIf="usuario">Hola, {{ usuario.nombre }}</p>
+        </div>
       </div>
       <button class="btn-logout" (click)="logout()">
         Cerrar Sesión 🚪
@@ -118,7 +121,10 @@
             {{ gasto.tipo?.nombre || 'Sin tipo' }}
           </span>
         </div>
-        <button class="btn-delete" (click)="eliminarGasto(gasto.id!)">🗑️</button>
+        <div class="gasto-actions">
+          <button class="btn-edit" (click)="editarGasto(gasto)">✏️</button>
+          <button class="btn-delete" (click)="eliminarGasto(gasto.id!)">🗑️</button>
+        </div>
       </div>
       
       <div class="gasto-body">
@@ -176,7 +182,8 @@
   <div class="modal-overlay" *ngIf="mostrarFormulario" (click)="cerrarFormulario()">
     <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h2>Nuevo Gasto</h2>
+        <h2 *ngIf="!editandoGastoId">➕ Nuevo Gasto</h2>
+        <h2 *ngIf="editandoGastoId">✏️ Editar Gasto</h2>
         <button class="btn-close" (click)="cerrarFormulario()">✖</button>
       </div>
 
@@ -216,7 +223,7 @@
             required
           >
             <option [ngValue]="null">Selecciona un tipo</option>
-            <option *ngFor="let tipo de tipos" [ngValue]="tipo.id">
+            <option *ngFor="let tipo of tipos" [ngValue]="tipo.id">
               {{ tipo.nombre }}
             </option>
             <option [ngValue]="-1">➕ Otro (nuevo)</option>
@@ -284,8 +291,11 @@
           <button type="button" class="btn-cancel" (click)="cerrarFormulario()">
             Cancelar
           </button>
-          <button type="submit" class="btn-save">
-            💾 Guardar Gasto
+          <button type="submit" class="btn-save" *ngIf="!editandoGastoId">
+            ✅ Crear Gasto
+          </button>
+          <button type="submit" class="btn-save" *ngIf="editandoGastoId">
+            💾 Actualizar Gasto
           </button>
         </div>
       </form>

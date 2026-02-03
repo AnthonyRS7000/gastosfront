@@ -3,8 +3,11 @@
   <header class="header">
     <div class="header-content">
       <div class="header-left">
-        <h1>💼 Mis Presupuestos</h1>
-        <p *ngIf="usuario">Bienvenido, {{ usuario.nombre }}</p>
+        <img src="/foto1.jpg" alt="Logo" class="header-logo">
+        <div>
+          <h1>💼 Mis Presupuestos</h1>
+          <p *ngIf="usuario">Bienvenido, {{ usuario.nombre }}</p>
+        </div>
       </div>
       <button class="btn-logout" (click)="logout()">
         🚪 Cerrar Sesión

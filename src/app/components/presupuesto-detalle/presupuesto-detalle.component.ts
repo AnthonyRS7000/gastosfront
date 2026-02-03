@@ -33,6 +33,7 @@ export class PresupuestoDetalleComponent implements OnInit {
   
   // Formulario nuevo gasto
   mostrarFormulario = false;
+  editandoGastoId: number | null = null;
   nuevoGasto: Partial<Gasto> = {
     monto: 0,
     moneda: 'PEN',
@@ -129,6 +130,12 @@ export class PresupuestoDetalleComponent implements OnInit {
   }
 
   crearGasto() {
+    // Si estamos editando, llamar a actualizar
+    if (this.editandoGastoId) {
+      this.actualizarGasto();
+      return;
+    }
+
     if (!this.nuevoGasto.monto || !this.nuevoGasto.fecha) {
       this.errorForm = 'Por favor completa los campos obligatorios';
       return;
@@ -178,9 +185,102 @@ export class PresupuestoDetalleComponent implements OnInit {
     });
   }
 
+  actualizarGasto() {
+    if (!this.editandoGastoId) return;
+
+    if (!this.nuevoGasto.monto || !this.nuevoGasto.fecha) {
+      this.errorForm = 'Por favor completa los campos obligatorios';
+      return;
+    }
+
+    if (this.nuevoGasto.monto <= 0) {
+      this.errorForm = 'El monto debe ser mayor a 0';
+      return;
+    }
+
+    this.loadingForm = true;
+    this.errorForm = '';
+
+    this.gastoService.actualizarGasto(this.editandoGastoId, this.nuevoGasto).subscribe({
+      next: (gastoActualizado) => {
+        // Actualizar en la lista local
+        const indice = this.gastos.findIndex(g => g.id === this.editandoGastoId);
+        if (indice !== -1) {
+          this.gastos[indice] = gastoActualizado;
+        }
+        
+        this.aplicarFiltros();
+        this.loadingForm = false;
+        this.mostrarFormulario = false;
+        this.editandoGastoId = null;
+        this.errorForm = '';
+        
+        // Recargar presupuesto para actualizar montos
+        if (this.presupuesto?.id) {
+          this.cargarPresupuesto(this.presupuesto.id);
+        }
+      },
+      error: (err) => {
+        this.loadingForm = false;
+        if (err.error?.message) {
+          this.errorForm = err.error.message;
+        } else {
+          this.errorForm = 'Error al actualizar gasto. Intenta de nuevo.';
+        }
+        console.error(err);
+      }
+    });
+  }
+
+  cerrarFormulario() {
+    this.mostrarFormulario = false;
+    this.editandoGastoId = null;
+    this.resetearFormulario();
+  }
+
+  abrirFormulario() {
+    this.editandoGastoId = null;
+    this.mostrarFormulario = true;
+    this.resetearFormulario();
+  }
+
+  resetearFormulario() {
+    this.nuevoGasto = {
+      monto: 0,
+      moneda: this.presupuesto?.moneda || 'PEN',
+      fecha: new Date().toISOString().split('T')[0],
+      descripcion: '',
+      lugar: '',
+      pagado: true,
+      tipo_id: undefined,
+      presupuesto_id: this.presupuesto?.id
+    };
+    this.nuevoTipoNombre = '';
+    this.mostrarOtroTipo = false;
+    this.errorForm = '';
+  }
+
+  onTipoChange() {
+    const tipoId = this.nuevoGasto.tipo_id;
+    this.mostrarOtroTipo = String(tipoId) === '-1';
+    if (!this.mostrarOtroTipo) {
+      this.nuevoTipoNombre = '';
+    }
+  }
+
   editarGasto(gasto: Gasto) {
-    // TODO: Implementar edición
-    console.log('Editar:', gasto);
+    this.editandoGastoId = gasto.id || null;
+    this.nuevoGasto = {
+      monto: gasto.monto,
+      moneda: gasto.moneda,
+      fecha: gasto.fecha.split('T')[0],
+      descripcion: gasto.descripcion,
+      lugar: gasto.lugar,
+      pagado: gasto.pagado,
+      tipo_id: gasto.tipo_id,
+      presupuesto_id: gasto.presupuesto_id
+    };
+    this.mostrarFormulario = true;
   }
 
   eliminarGasto(gasto: Gasto, event: Event) {

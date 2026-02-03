@@ -32,6 +32,7 @@ export class GastosComponent implements OnInit {
   
   // Formulario gasto
   mostrarFormulario = false;
+  editandoGastoId: number | null = null;
   nuevoGasto: Partial<Gasto> = {
     monto: 0,
     moneda: 'PEN',
@@ -241,7 +242,9 @@ export class GastosComponent implements OnInit {
   // ========== FORMULARIO GASTO ==========
 
   abrirFormulario() {
+    this.editandoGastoId = null;
     this.mostrarFormulario = true;
+    this.resetearFormulario();
     
     // Si hay presupuesto seleccionado, asignarlo automáticamente
     if (this.presupuestoSeleccionado) {
@@ -249,8 +252,24 @@ export class GastosComponent implements OnInit {
     }
   }
 
+  editarGasto(gasto: Gasto) {
+    this.editandoGastoId = gasto.id || null;
+    this.nuevoGasto = {
+      monto: gasto.monto,
+      moneda: gasto.moneda,
+      fecha: gasto.fecha.split('T')[0],
+      descripcion: gasto.descripcion,
+      lugar: gasto.lugar,
+      pagado: gasto.pagado,
+      tipo_id: gasto.tipo_id,
+      presupuesto_id: gasto.presupuesto_id
+    };
+    this.mostrarFormulario = true;
+  }
+
   cerrarFormulario() {
     this.mostrarFormulario = false;
+    this.editandoGastoId = null;
     this.resetearFormulario();
   }
 
@@ -264,6 +283,12 @@ export class GastosComponent implements OnInit {
   }
 
   guardarGasto() {
+    // Si estamos editando, llamar a actualizar en lugar de crear
+    if (this.editandoGastoId) {
+      this.actualizarGasto();
+      return;
+    }
+
     if (String(this.nuevoGasto.tipo_id) === '-1' && this.nuevoTipoNombre) {
       // ✅ NUEVA LÓGICA: Crear tipo localmente ANTES de enviar el gasto
       // Generar un ID temporal (será reemplazado por el servidor)
@@ -324,6 +349,22 @@ export class GastosComponent implements OnInit {
         }
       });
     }
+  }
+
+  actualizarGasto() {
+    if (!this.editandoGastoId) return;
+
+    this.gastoService.actualizarGasto(this.editandoGastoId, this.nuevoGasto).subscribe({
+      next: () => {
+        this.cargarGastos();
+        this.cargarPresupuestos();
+        this.cerrarFormulario();
+      },
+      error: (err) => {
+        console.error('Error actualizando gasto:', err);
+        alert(err.error?.message || 'Error al actualizar el gasto');
+      }
+    });
   }
 
   eliminarGasto(id: number) {
