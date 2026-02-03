@@ -1,0 +1,89 @@
+<div class="register-page">
+  <div class="register-container">
+    <div class="register-header">
+      <div class="logo">💼</div>
+      <h2>Crear Cuenta</h2>
+      <p class="subtitle">Completa tus datos para registrarte</p>
+    </div>
+    
+    <form (ngSubmit)="onRegister()">
+      <div class="form-group">
+        <label>Nombre completo</label>
+        <div class="input-wrapper">
+          <span class="input-icon">👤</span>
+          <input 
+            type="text" 
+            [(ngModel)]="nombre" 
+            name="nombre"
+            required 
+            placeholder="Tu nombre"
+            [disabled]="loading"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <div class="input-wrapper">
+          <span class="input-icon">📧</span>
+          <input 
+            type="email" 
+            [(ngModel)]="email" 
+            name="email"
+            required 
+            placeholder="tu@email.com"
+            [disabled]="loading"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Contraseña</label>
+        <div class="input-wrapper">
+          <span class="input-icon">🔒</span>
+          <input 
+            type="password" 
+            [(ngModel)]="password" 
+            name="password"
+            required 
+            placeholder="Mínimo 6 caracteres"
+            [disabled]="loading"
+          />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Confirmar contraseña</label>
+        <div class="input-wrapper">
+          <span class="input-icon">🔒</span>
+          <input 
+            type="password" 
+            [(ngModel)]="passwordConfirm" 
+            name="passwordConfirm"
+            required 
+            placeholder="Repite tu contraseña"
+            [disabled]="loading"
+          />
+        </div>
+      </div>
+
+      <div class="error" *ngIf="error">
+        <span class="error-icon">⚠️</span>
+        {{ error }}
+      </div>
+
+      <button type="submit" class="btn-register" [disabled]="loading">
+        <span *ngIf="!loading">Crear Cuenta</span>
+        <span *ngIf="loading">Creando...</span>
+      </button>
+    </form>
+
+    <div class="divider">
+      <span>o</span>
+    </div>
+
+    <button type="button" class="btn-login" routerLink="/login">
+      Volver a Iniciar Sesión
+    </button>
+  </div>
+</div>

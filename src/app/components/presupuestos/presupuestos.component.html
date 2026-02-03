@@ -1,0 +1,202 @@
+<div class="presupuestos-page">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1>💼 Mis Presupuestos</h1>
+        <p *ngIf="usuario">Bienvenido, {{ usuario.nombre }}</p>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="presupuestos-container">
+    <!-- Mensaje de error de carga -->
+    <div *ngIf="errorCarga" class="error-message">
+      ⚠️ {{ errorCarga }}
+    </div>
+
+    <!-- Botón crear presupuesto -->
+    <div class="action-bar">
+      <button 
+        class="btn-crear"
+        (click)="toggleFormulario()"
+        *ngIf="presupuestos.length > 0"
+      >
+        ➕ Nuevo Presupuesto
+      </button>
+    </div>
+
+    <!-- Formulario nuevo presupuesto -->
+    <div class="formulario-container" *ngIf="mostrarFormulario">
+      <div class="formulario-card">
+        <h2>{{ editandoId ? '✏️ Editar Presupuesto' : (presupuestos.length > 0 ? 'Crear Nuevo Presupuesto' : '📋 Crea tu Presupuesto') }}</h2>
+        
+        <div class="form-group">
+          <label>Nombre del presupuesto</label>
+          <input 
+            type="text" 
+            [(ngModel)]="nuevoPresupuesto.nombre"
+            placeholder="Ej: Viaje, Gastos mensuales, etc."
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monto total</label>
+            <input 
+              type="number" 
+              [(ngModel)]="nuevoPresupuesto.monto_total"
+              placeholder="0.00"
+              class="form-input"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Moneda</label>
+            <select [(ngModel)]="nuevoPresupuesto.moneda" class="form-input">
+              <option value="PEN">S/ PEN</option>
+              <option value="USD">$ USD</option>
+              <option value="EUR">€ EUR</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Fecha inicio (opcional)</label>
+            <input 
+              type="date" 
+              [(ngModel)]="nuevoPresupuesto.fecha_inicio"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Fecha fin (opcional)</label>
+            <input 
+              type="date" 
+              [(ngModel)]="nuevoPresupuesto.fecha_fin"
+              class="form-input"
+            />
+          </div>
+        </div>
+
+        <div *ngIf="errorForm" class="error-message">
+          ⚠️ {{ errorForm }}
+        </div>
+
+        <div class="form-actions">
+          <button 
+            class="btn-primary"
+            (click)="crearPresupuesto()"
+            [disabled]="loadingForm"
+          >
+            {{ loadingForm ? '⏳ Guardando...' : (editandoId ? '💾 Actualizar Presupuesto' : '✅ Crear Presupuesto') }}
+          </button>
+          <button 
+            class="btn-secondary"
+            (click)="toggleFormulario()"
+            [disabled]="loadingForm"
+          >
+            ✖ Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado de carga -->
+    <div *ngIf="loading" class="loading">
+      <div class="spinner"></div>
+      <p>Cargando presupuestos...</p>
+    </div>
+
+    <!-- Lista de presupuestos en carriles -->
+    <div *ngIf="!loading && presupuestos.length > 0" class="presupuestos-grid">
+      <div 
+        class="presupuesto-card"
+        *ngFor="let presupuesto of presupuestos"
+        (click)="verPresupuesto(presupuesto)"
+        [class]="'estado-' + calcularEstado(presupuesto)"
+      >
+        <!-- Header del card -->
+        <div class="card-header">
+          <h3>{{ presupuesto.nombre }}</h3>
+          <div class="card-actions">
+            <button 
+              class="btn-icon"
+              (click)="editarPresupuesto(presupuesto, $event)"
+              title="Editar"
+            >
+              ✏️
+            </button>
+            <button 
+              class="btn-icon btn-delete"
+              (click)="eliminarPresupuesto(presupuesto, $event)"
+              title="Eliminar"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <!-- Montos -->
+        <div class="card-amounts">
+          <div class="amount-item">
+            <span class="label">Total</span>
+            <span class="value">{{ presupuesto.moneda }} {{ presupuesto.monto_total | number:'1.2-2' }}</span>
+          </div>
+          <div class="amount-item">
+            <span class="label">Gastado</span>
+            <span class="value gasto">{{ presupuesto.moneda }} {{ (presupuesto.total_gastado || 0) | number:'1.2-2' }}</span>
+          </div>
+          <div class="amount-item">
+            <span class="label">Disponible</span>
+            <span class="value disponible">{{ presupuesto.moneda }} {{ (presupuesto.saldo_restante || 0) | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <!-- Barra de progreso -->
+        <div class="progress-section">
+          <div class="progress-bar">
+            <div 
+              class="progress-fill"
+              [style.width.%]="presupuesto.porcentaje_utilizado || 0"
+              [class.warning]="(presupuesto.porcentaje_utilizado || 0) >= 80"
+              [class.danger]="(presupuesto.porcentaje_utilizado || 0) >= 100"
+            ></div>
+          </div>
+          <div class="progress-info">
+            <span>{{ presupuesto.porcentaje_utilizado || 0 }}% utilizado</span>
+            <span class="gastos-count" *ngIf="presupuesto.gastos_count">
+              {{ presupuesto.gastos_count }} gasto(s)
+            </span>
+          </div>
+        </div>
+
+        <!-- Estado -->
+        <div class="card-footer">
+          <span class="estado-badge" [class]="calcularEstado(presupuesto)">
+            <span *ngIf="calcularEstado(presupuesto) === 'normal'">✅ Normal</span>
+            <span *ngIf="calcularEstado(presupuesto) === 'alto'">⚠️ Alto</span>
+            <span *ngIf="calcularEstado(presupuesto) === 'excedido'">❌ Excedido</span>
+          </span>
+          <span class="click-hint">👆 Haz clic para ver detalles</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje sin presupuestos -->
+    <div *ngIf="!loading && presupuestos.length === 0 && !mostrarFormulario" class="empty-state">
+      <div class="empty-icon">💼</div>
+      <h2>Sin presupuestos aún</h2>
+      <p>Crea tu primer presupuesto para empezar a controlar tus gastos</p>
+    </div>
+  </div>
+</div>

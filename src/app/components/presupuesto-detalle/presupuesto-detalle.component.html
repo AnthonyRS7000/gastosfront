@@ -1,0 +1,359 @@
+<div class="presupuesto-detalle-page">
+  <!-- Header -->
+  <header class="header" *ngIf="presupuesto">
+    <div class="header-content">
+      <button class="btn-back" (click)="volver()">
+        ⬅ Volver
+      </button>
+      <div class="header-title">
+        <h1>{{ presupuesto.nombre }}</h1>
+        <p class="moneda">{{ presupuesto.moneda }}</p>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        🚪 Cerrar Sesión
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando presupuesto...</p>
+  </div>
+
+  <!-- Contenido -->
+  <div *ngIf="!loading && presupuesto" class="presupuesto-container">
+    <!-- Tarjeta de resumen principal -->
+    <div class="resumen-principal">
+      <div class="resumen-card">
+        <div class="resumen-item">
+          <span class="label">💰 Total Presupuesto</span>
+          <span class="valor">{{ presupuesto.moneda }} {{ presupuesto.monto_total | number:'1.2-2' }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">💸 Total Gastado</span>
+          <span class="valor gasto">{{ presupuesto.moneda }} {{ (presupuesto.total_gastado || 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">💵 Disponible</span>
+          <span class="valor disponible">{{ presupuesto.moneda }} {{ (presupuesto.saldo_restante || 0) | number:'1.2-2' }}</span>
+        </div>
+        <div class="resumen-item">
+          <span class="label">📊 Utilizado</span>
+          <span class="valor porcentaje">{{ presupuesto.porcentaje_utilizado || 0 }}%</span>
+        </div>
+      </div>
+
+      <!-- Barra de progreso -->
+      <div class="progress-section">
+        <div class="progress-bar">
+          <div 
+            class="progress-fill"
+            [style.width.%]="presupuesto.porcentaje_utilizado || 0"
+            [class.warning]="(presupuesto.porcentaje_utilizado || 0) >= 80"
+            [class.danger]="(presupuesto.porcentaje_utilizado || 0) >= 100"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estadísticas (si hay datos) -->
+    <div class="estadisticas-section" *ngIf="estadisticas">
+      <h2>📈 Estadísticas</h2>
+      
+      <div class="estadisticas-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🛒</div>
+          <div class="stat-content">
+            <span class="stat-label">Cantidad de gastos</span>
+            <span class="stat-valor">{{ estadisticas.resumen.cantidad_gastos }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <span class="stat-label">Promedio por gasto</span>
+            <span class="stat-valor">{{ presupuesto.moneda }} {{ estadisticas.resumen.promedio_por_gasto | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📅</div>
+          <div class="stat-content">
+            <span class="stat-label">Promedio diario</span>
+            <span class="stat-valor">{{ presupuesto.moneda }} {{ estadisticas.resumen.promedio_diario | number:'1.2-2' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de gastos por tipo -->
+      <div class="chart-section" *ngIf="estadisticas.gastos_por_tipo.length > 0">
+        <h3>💹 Gastos por Tipo</h3>
+        <div class="chart-items">
+          <div class="chart-item" *ngFor="let item of estadisticas.gastos_por_tipo">
+            <div class="chart-label">
+              <span class="tipo-nombre">{{ item.tipo }}</span>
+              <span class="tipo-datos">{{ item.cantidad }} | {{ presupuesto.moneda }} {{ item.total | number:'1.2-2' }}</span>
+            </div>
+            <div class="chart-bar">
+              <div 
+                class="chart-fill"
+                [style.width.%]="(item.total / (estadisticas.resumen.total_gastado || 1)) * 100"
+              ></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtros y acciones -->
+    <div class="gastos-section">
+      <div class="section-header">
+        <h2>📝 Gastos ({{ gastosFiltrados.length }})</h2>
+        <button 
+          class="btn-nuevo-gasto"
+          (click)="toggleFormulario()"
+        >
+          ➕ Nuevo Gasto
+        </button>
+      </div>
+
+      <!-- Formulario nuevo gasto -->
+      <div class="formulario-container" *ngIf="mostrarFormulario">
+        <div class="formulario-card">
+          <h3>Registrar Nuevo Gasto</h3>
+          
+          <div class="form-group">
+            <label>Tipo de gasto *</label>
+            <div class="tipo-selector">
+              <select 
+                [(ngModel)]="nuevoGasto.tipo_id"
+                (ngModelChange)="mostrarOtroTipo = false"
+                class="form-input"
+              >
+                <option [value]="undefined">Selecciona un tipo</option>
+                <option *ngFor="let tipo of tipos" [value]="tipo.id">
+                  {{ tipo.nombre }}
+                </option>
+              </select>
+              <button 
+                class="btn-otro-tipo"
+                (click)="mostrarOtroTipo = !mostrarOtroTipo"
+              >
+                Otro
+              </button>
+            </div>
+
+            <div *ngIf="mostrarOtroTipo" class="otro-tipo-input">
+              <input 
+                type="text"
+                [(ngModel)]="nuevoTipoNombre"
+                placeholder="Nombre del nuevo tipo"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Monto *</label>
+              <input 
+                type="number"
+                [(ngModel)]="nuevoGasto.monto"
+                placeholder="0.00"
+                class="form-input"
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Fecha *</label>
+              <input 
+                type="date"
+                [(ngModel)]="nuevoGasto.fecha"
+                class="form-input"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Descripción</label>
+            <input 
+              type="text"
+              [(ngModel)]="nuevoGasto.descripcion"
+              placeholder="Breve descripción"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Lugar</label>
+            <input 
+              type="text"
+              [(ngModel)]="nuevoGasto.lugar"
+              placeholder="Dónde realizaste el gasto"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group checkbox">
+            <label>
+              <input 
+                type="checkbox"
+                [(ngModel)]="nuevoGasto.pagado"
+              />
+              ✓ Pagado
+            </label>
+          </div>
+
+          <div *ngIf="errorForm" class="error-message">
+            ⚠️ {{ errorForm }}
+          </div>
+
+          <div class="form-actions">
+            <button 
+              class="btn-primary"
+              (click)="crearGasto()"
+              [disabled]="loadingForm"
+            >
+              {{ loadingForm ? '⏳ Guardando...' : '✅ Guardar Gasto' }}
+            </button>
+            <button 
+              class="btn-secondary"
+              (click)="toggleFormulario()"
+              [disabled]="loadingForm"
+            >
+              ✖ Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-container">
+        <div class="filtros">
+          <div class="filtro-group">
+            <label>🏷️ Tipo</label>
+            <select [(ngModel)]="filtroTipo" (ngModelChange)="onFiltroChange()">
+              <option value="todos">Todos</option>
+              <option *ngFor="let tipo of tipos" [value]="tipo.id">
+                {{ tipo.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <div class="filtro-group">
+            <label>📅 Desde</label>
+            <input 
+              type="date"
+              [(ngModel)]="filtroFechaDesde"
+              (ngModelChange)="onFiltroChange()"
+            />
+          </div>
+
+          <div class="filtro-group">
+            <label>📅 Hasta</label>
+            <input 
+              type="date"
+              [(ngModel)]="filtroFechaHasta"
+              (ngModelChange)="onFiltroChange()"
+            />
+          </div>
+
+          <div class="filtro-group">
+            <label>💳 Estado</label>
+            <select [(ngModel)]="filtroPagado" (ngModelChange)="onFiltroChange()">
+              <option value="todos">Todos</option>
+              <option value="pagado">✓ Pagado</option>
+              <option value="pendiente">⏳ Pendiente</option>
+            </select>
+          </div>
+
+          <div class="filtro-group">
+            <label>📊 Ordenar</label>
+            <select [(ngModel)]="ordenar" (ngModelChange)="onFiltroChange()">
+              <option value="fecha-desc">Más reciente</option>
+              <option value="fecha-asc">Más antiguo</option>
+              <option value="monto-desc">Mayor monto</option>
+              <option value="monto-asc">Menor monto</option>
+            </select>
+          </div>
+
+          <button 
+            class="btn-limpiar"
+            (click)="limpiarFiltros()"
+            *ngIf="hayFiltrosActivos()"
+          >
+            🔄 Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de gastos -->
+      <div class="gastos-lista">
+        <div 
+          class="gasto-item"
+          *ngFor="let gasto of gastosFiltrados"
+        >
+          <div class="gasto-tipo" [style.background-color]="gasto.tipo?.color || '#667eea'">
+            📌
+          </div>
+
+          <div class="gasto-info">
+            <div class="gasto-header">
+              <span class="gasto-descripcion">
+                {{ gasto.descripcion || gasto.tipo?.nombre || 'Gasto' }}
+              </span>
+              <span class="gasto-lugar" *ngIf="gasto.lugar">
+                📍 {{ gasto.lugar }}
+              </span>
+            </div>
+            <div class="gasto-meta">
+              <span class="gasto-tipo-nombre">{{ obtenerNombreTipo(gasto.tipo_id) }}</span>
+              <span class="gasto-fecha">{{ gasto.fecha | date:'dd/MM/yyyy' }}</span>
+              <span class="gasto-estado" [class.pagado]="gasto.pagado">
+                {{ gasto.pagado ? '✓ Pagado' : '⏳ Pendiente' }}
+              </span>
+            </div>
+          </div>
+
+          <div class="gasto-monto">
+            <span class="monto">{{ presupuesto?.moneda }} {{ gasto.monto | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="gasto-acciones">
+            <button 
+              class="btn-icon"
+              (click)="editarGasto(gasto)"
+              title="Editar"
+            >
+              ✏️
+            </button>
+            <button 
+              class="btn-icon btn-delete"
+              (click)="eliminarGasto(gasto, $event)"
+              title="Eliminar"
+            >
+              🗑️
+            </button>
+          </div>
+        </div>
+
+        <!-- Sin gastos -->
+        <div *ngIf="gastosFiltrados.length === 0" class="sin-gastos">
+          <p>No hay gastos registrados</p>
+        </div>
+      </div>
+
+      <!-- Resumen de gastos filtrados -->
+      <div class="resumen-filtrados" *ngIf="gastosFiltrados.length > 0">
+        <div class="resumen-item">
+          <span>Total filtrado:</span>
+          <span class="monto">{{ presupuesto?.moneda }} {{ calcularTotal() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Iconos PWA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .icon-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .icon-item {
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            max-width: 100%;
+            height: auto;
+        }
+        button {
+            background: #ff69b4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #ff4d9e;
+        }
+        .download-btn {
+            margin-top: 10px;
+            font-size: 12px;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 Generador de Iconos PWA</h1>
+    <p>Haz clic en "Generar Iconos" para crear todos los tamaños necesarios</p>
+    
+    <button onclick="generateAllIcons()">✨ Generar Iconos</button>
+    
+    <div class="icon-container" id="preview"></div>
+
+    <script>
+        const SIZES = [72, 96, 128, 144, 152, 192, 384, 512];
+        const MAIN_COLOR = '#ff69b4';
+        const SECONDARY_COLOR = '#ffb6d9';
+
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // Gradiente
+            const gradient = ctx.createLinearGradient(0, 0, 0, size);
+            gradient.addColorStop(0, MAIN_COLOR);
+            gradient.addColorStop(1, SECONDARY_COLOR);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Círculo blanco
+            const margin = size * 0.15;
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(size / 2, size / 2, size / 2 - margin, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Símbolo de dinero
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const radius = size * 0.08;
+
+            ctx.strokeStyle = MAIN_COLOR;
+            ctx.lineWidth = Math.max(1, size / 32);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Líneas de moneda
+            const lineY1 = centerY - radius * 0.3;
+            const lineY2 = centerY + radius * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius, lineY1);
+            ctx.lineTo(centerX + radius, lineY1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(centerX - radius, lineY2);
+            ctx.lineTo(centerX + radius, lineY2);
+            ctx.stroke();
+
+            return canvas;
+        }
+
+        function downloadIcon(canvas, filename) {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = filename;
+            link.click();
+        }
+
+        function generateAllIcons() {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+
+            SIZES.forEach(size => {
+                const canvas = createIcon(size);
+                
+                const item = document.createElement('div');
+                item.className = 'icon-item';
+                
+                const canvasClone = canvas.cloneNode();
+                canvasClone.style.maxWidth = '100%';
+                canvasClone.style.height = 'auto';
+                
+                const filename = `icon-${size}x${size}.png`;
+                const label = document.createElement('p');
+                label.textContent = filename;
+                label.style.fontSize = '12px';
+                label.style.margin = '5px 0';
+                
+                const btn = document.createElement('button');
+                btn.textContent = '⬇ Descargar';
+                btn.className = 'download-btn';
+                btn.onclick = () => downloadIcon(canvas, filename);
+                
+                item.appendChild(canvasClone);
+                item.appendChild(label);
+                item.appendChild(btn);
+                preview.appendChild(item);
+            });
+
+            // Descargar automáticamente el primero como demostración
+            alert('✅ Haz clic en los botones de descarga para guardar cada icono.\n\nLuego coloca los archivos en: public/icons/');
+        }
+
+        // Auto-generar al cargar
+        window.addEventListener('load', generateAllIcons);
+    </script>
+</body>
+</html>

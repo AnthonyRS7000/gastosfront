@@ -1,0 +1,294 @@
+<div class="gastos-page">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1>💰 Mis Gastos</h1>
+        <p *ngIf="usuario">Hola, {{ usuario.nombre }}</p>
+      </div>
+      <button class="btn-logout" (click)="logout()">
+        Cerrar Sesión 🚪
+      </button>
+    </div>
+  </header>
+
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    <div class="filtros">
+      <div class="filtro-group">
+        <label>🏷️ Tipo de gasto</label>
+        <select [(ngModel)]="filtroTipo" (ngModelChange)="onFiltroChange()">
+          <option value="todos">Todos los tipos</option>
+          <option *ngFor="let tipo of tipos" [value]="tipo.id">
+            {{ tipo.nombre }}
+          </option>
+        </select>
+      </div>
+
+
+      <div class="filtro-group">
+        <label>📅 Desde</label>
+        <input 
+          type="date" 
+          [(ngModel)]="filtroFechaDesde" 
+          (ngModelChange)="onFiltroChange()"
+          placeholder="Fecha inicial"
+        />
+      </div>
+
+
+      <div class="filtro-group">
+        <label>📅 Hasta</label>
+        <input 
+          type="date" 
+          [(ngModel)]="filtroFechaHasta" 
+          (ngModelChange)="onFiltroChange()"
+          placeholder="Fecha final"
+        />
+      </div>
+
+
+      <button class="btn-limpiar" (click)="limpiarFiltros()" 
+              *ngIf="hayFiltrosActivos()">
+        🔄 Limpiar
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ✅ CARRIL DE FECHAS (NUEVO) -->
+  <div class="carril-fechas" *ngIf="diasCarril.length > 0">
+    <div class="carril-header">
+      <h3>📅 Selecciona un día</h3>
+      <button class="btn-limpiar-dia" *ngIf="fechaSeleccionada" (click)="limpiarSeleccionDia()">
+        ✖ Ver todos
+      </button>
+    </div>
+    
+    <div class="carril-scroll">
+      <div 
+        class="dia-card" 
+        *ngFor="let dia of diasCarril"
+        [class.activo]="dia.activo"
+        (click)="seleccionarDiaCarril(dia)"
+      >
+        <div class="dia-nombre">{{ dia.dia }}</div>
+        <div class="dia-numero">{{ dia.numero }}</div>
+        <div class="dia-mes">{{ dia.mes }}</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Resumen -->
+  <div class="resumen">
+    <div class="resumen-card">
+      <div class="resumen-icon">📊</div>
+      <div class="resumen-info">
+        <span class="resumen-label">Gastos mostrados</span>
+        <span class="resumen-valor">{{ gastosFiltrados.length }}</span>
+      </div>
+    </div>
+    
+    <div class="resumen-card">
+      <div class="resumen-icon">💵</div>
+      <div class="resumen-info">
+        <span class="resumen-label">Total</span>
+        <span class="resumen-valor">S/ {{ calcularTotal() | number:'1.2-2' }}</span>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Botón agregar -->
+  <div class="actions">
+    <button class="btn-add" (click)="abrirFormulario()">
+      ➕ Agregar Gasto
+    </button>
+  </div>
+
+
+  <!-- Lista de gastos -->
+  <div class="gastos-lista" *ngIf="!loading && gastosFiltrados.length > 0">
+    <div class="gasto-card" *ngFor="let gasto of gastosFiltrados">
+      <div class="gasto-header">
+        <div class="gasto-tipo">
+          <span class="tipo-badge" [style.background]="gasto.tipo?.color || '#f5576c'">
+            {{ gasto.tipo?.nombre || 'Sin tipo' }}
+          </span>
+        </div>
+        <button class="btn-delete" (click)="eliminarGasto(gasto.id!)">🗑️</button>
+      </div>
+      
+      <div class="gasto-body">
+        <div class="gasto-monto">
+          {{ gasto.moneda }} {{ gasto.monto | number:'1.2-2' }}
+        </div>
+        <div class="gasto-descripcion" *ngIf="gasto.descripcion">
+          {{ gasto.descripcion }}
+        </div>
+        <div class="gasto-detalles">
+          <span *ngIf="gasto.lugar" class="detalle-item">
+            <span class="detalle-icon">📍</span>
+            {{ gasto.lugar }}
+          </span>
+          <span class="detalle-item">
+            <span class="detalle-icon">📅</span>
+            {{ formatearFecha(gasto.fecha) }}
+          </span>
+          <span class="detalle-item" [class.pagado]="gasto.pagado" [class.pendiente]="!gasto.pagado">
+            {{ gasto.pagado ? '✅ Pagado' : '⏳ Pendiente' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Cargando gastos...</p>
+  </div>
+
+
+  <!-- Vacío con filtros -->
+  <div class="empty" *ngIf="!loading && gastosFiltrados.length === 0 && gastos.length > 0">
+    <div class="empty-icon">🔍</div>
+    <h3>No hay gastos con estos filtros</h3>
+    <p>Intenta cambiar las fechas o el tipo</p>
+    <button class="btn-limpiar-empty" (click)="limpiarFiltros()">
+      Ver todos los gastos
+    </button>
+  </div>
+
+
+  <!-- Vacío sin gastos -->
+  <div class="empty" *ngIf="!loading && gastos.length === 0">
+    <div class="empty-icon">📭</div>
+    <h3>No hay gastos registrados</h3>
+    <p>Comienza agregando tu primer gasto</p>
+  </div>
+
+
+  <!-- Modal Formulario -->
+  <div class="modal-overlay" *ngIf="mostrarFormulario" (click)="cerrarFormulario()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Nuevo Gasto</h2>
+        <button class="btn-close" (click)="cerrarFormulario()">✖</button>
+      </div>
+
+
+      <form (ngSubmit)="guardarGasto()">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Monto *</label>
+            <input 
+              type="number" 
+              [(ngModel)]="nuevoGasto.monto" 
+              name="monto"
+              step="0.01"
+              required
+              placeholder="0.00"
+            />
+          </div>
+
+
+          <div class="form-group">
+            <label>Moneda</label>
+            <select [(ngModel)]="nuevoGasto.moneda" name="moneda">
+              <option value="PEN">PEN (S/)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div class="form-group">
+          <label>Tipo *</label>
+          <select 
+            [(ngModel)]="nuevoGasto.tipo_id" 
+            name="tipo_id"
+            (ngModelChange)="onTipoChange()"
+            required
+          >
+            <option [ngValue]="null">Selecciona un tipo</option>
+            <option *ngFor="let tipo de tipos" [ngValue]="tipo.id">
+              {{ tipo.nombre }}
+            </option>
+            <option [ngValue]="-1">➕ Otro (nuevo)</option>
+          </select>
+        </div>
+
+
+        <div class="form-group animate-in" *ngIf="mostrarOtroTipo">
+          <label>Nombre del nuevo tipo *</label>
+          <input 
+            type="text" 
+            [(ngModel)]="nuevoTipoNombre" 
+            name="nuevoTipo"
+            placeholder="Ej: Entretenimiento, Souvenirs, etc."
+            required
+          />
+        </div>
+
+
+        <div class="form-group">
+          <label>Fecha *</label>
+          <input 
+            type="date" 
+            [(ngModel)]="nuevoGasto.fecha" 
+            name="fecha"
+            required
+          />
+        </div>
+
+
+        <div class="form-group">
+          <label>Descripción</label>
+          <input 
+            type="text" 
+            [(ngModel)]="nuevoGasto.descripcion" 
+            name="descripcion"
+            placeholder="Ej: Almuerzo en restaurante"
+          />
+        </div>
+
+
+        <div class="form-group">
+          <label>Lugar</label>
+          <input 
+            type="text" 
+            [(ngModel)]="nuevoGasto.lugar" 
+            name="lugar"
+            placeholder="Ej: Lima, Cusco, etc."
+          />
+        </div>
+
+
+        <div class="form-group-checkbox">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="nuevoGasto.pagado" 
+            name="pagado"
+            id="pagado"
+          />
+          <label for="pagado">Ya pagado</label>
+        </div>
+
+
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" (click)="cerrarFormulario()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-save">
+            💾 Guardar Gasto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
