@@ -1,0 +1,11 @@
+﻿{
+  "buildCommand": "npm run build -- --configuration production",
+  "outputDirectory": "dist/gastosfront/browser",
+  "framework": "angular",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
