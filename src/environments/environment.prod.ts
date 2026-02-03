@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://tu-dominio.com/api' // cambiar cuando despliegues
+  apiUrl: 'https://gastosback.mercadodigitalhuanuco.com/api'
 };
